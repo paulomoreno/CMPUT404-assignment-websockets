@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
         Copyright 2013 Google, Abram Hindle
+        Copyright 2014 Paulo H O Moreno
         
         Licensed under the Apache License, Version 2.0 (the "License");
         you may not use this file except in compliance with the License.
@@ -28,34 +29,48 @@
 
     <script>
       // Fix me
-var canvas = document.getElementById('c');
-var host = window.location.host;
-var context = canvas.getContext("2d");
-var W = canvas.width  = window.innerWidth-6;
-var H = canvas.height = window.innerHeight-50;
-var wscounter = 0;
-var socket;
+    var canvas = document.getElementById('c');
+    var host = window.location.host;
+    var context = canvas.getContext("2d");
+    var W = canvas.width  = window.innerWidth-6;
+    var H = canvas.height = window.innerHeight-50;
+    var wscounter = 0;
+    var socket;
+    //wsSetup();
 
 function debug(str) {
     var debugDiv = document.getElementById('debug');
     debugDiv.innerHTML = "" + str;
 }
-debug("Test");
+debug("Cat pictures from SXC.HU");
 
 world = {};
 
-//XXX: TODO Make this prettier!
-function drawCircle(context,entity) {
-    with(context) {
-        beginPath();                
-        lineWidth = 3;
-        var x = entity["x"];
-        var y = entity["y"];
-        //moveTo(x,y);
-        fillStyle = entity["colour"];
-        strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
-        stroke();                                
+
+function drawCircle(context,entity,entityName) {
+
+    var x = entity["x"];
+    var y = entity["y"];
+    var radius = (entity["radius"]);
+    var source = entity["source"];
+
+    if (radius === 100){
+        var thumbImg = Image();
+        thumbImg.src = source;
+        thumbImg.onload = function(){
+            context.drawImage(thumbImg, x-radius/2, y-radius/2, radius, radius);
+        }
+    }else{
+
+        with(context) {
+            beginPath();              
+            lineWidth = 3;
+            fillStyle = entity["colour"];
+            strokeStyle = fillStyle;
+            arc(x, y, radius, 0, 2.0 * Math.PI, false); 
+            fill(); 
+            stroke();                                
+        }
     }
 }
 
@@ -83,7 +98,7 @@ function renderFrame() {
     clearFrame();
     for (var key in world) {
         var entity = world[key];
-        drawCircle(context,prepEntity(entity));
+        drawCircle(context,prepEntity(entity),key);
     }
 }
 
@@ -124,8 +139,16 @@ function getPosition(e) {
 function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
-    //XXX: Send a XHTML Request that updates the entity you just modified!
+    //debug("teste");
+
+    var resp = {};
+    resp[entity] = data;
+
+   // debug(JSON.stringify(resp));
+
+    socket.send( JSON.stringify(resp) );
 }
+
 var counter = 0;
 function addEntityWithoutName(data) {
     var name = "X"+(counter++)%100;
@@ -231,16 +254,15 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':getRandomColor(),'radius':100,'source' : getRandomCatName(),});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':getRandomColor(),'radius':100,'source' : getRandomCatName(),});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':getRandomColor(),'radius':getRandomRadius(),});
 });
 
 
@@ -254,14 +276,23 @@ function wsSetup() {
     socket = new WebSocket(url);
     socket.onopen = function() {
         //XXX: TODO What are you going to do here?
+        //Nothing, because Im already getting all the entities when I open a connection
     };
     socket.onerror = function(msg) {
         debug("WebSocket Error:" + msg.data);
     };
     socket.onmessage = function(msg) {  
         try {
-            debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            //debug("WebSocket Recv:" + msg.data);
+
+            var entity = JSON.parse(msg.data);
+
+            for (var key in entity) {
+                //addEntity(key, entity[key]);
+                world[key] = entity[key];
+                drawNextFrame();
+            }
+           
         } catch (e) {
             alert("socket on message: " + e);
         }
@@ -270,12 +301,29 @@ function wsSetup() {
 
 wsSetup();
 
-
-
-
 // 30 frames per second
 setInterval( update, 1000/30.0);
 
+// Function by Anatoliy from StackOverflow
+// http://stackoverflow.com/questions/1484506/random-color-generator-in-javascript
+function getRandomColor() {
+    var letters = '0123456789ABCDEF'.split('');
+    var color = '#';
+    for (var i = 0; i < 6; i++ ) {
+        color += letters[Math.round(Math.random() * 15)];
+    }
+    return color;
+}
+
+function getRandomRadius() {
+    return Math.floor(Math.random() * 20) + 10;
+}
+
+function getRandomCatName() {
+    var i = Math.floor(Math.random() * 6) + 1;
+    var cat_name = 'img/cat0' + i + '.png';
+    return cat_name;
+}
 
     </script>
 </body>

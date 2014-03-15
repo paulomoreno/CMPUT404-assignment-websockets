@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 # Copyright (c) 2013-2014 Abram Hindle
+# Copyright 2014 Paulo H O Moreno
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,7 +16,7 @@
 # limitations under the License.
 #
 import flask
-from flask import Flask, request
+from flask import Flask, request, render_template, url_for, redirect
 from flask_sockets import Sockets
 import gevent
 from gevent import queue
@@ -59,28 +61,85 @@ class World:
     def world(self):
         return self.space
 
-myWorld = World()        
+myWorld = World()
+
+class Client:
+    def __init__(self):
+        self.queue = queue.Queue()
+
+    def put(self, v):
+        self.queue.put_nowait(v)
+
+    def get(self):
+        return self.queue.get()
+
+
+#List of clients connected        
+clients = list()
 
 def set_listener( entity, data ):
     ''' do something with the update ! '''
+    resp = dict()
+    resp[entity] = data
+
+    #send the updates to all clients
+    for client in clients:
+    	client.put(json.dumps(resp))
 
 myWorld.add_set_listener( set_listener )
+print(myWorld.listeners)
         
 @app.route('/')
 def hello():
     '''Return something coherent here.. perhaps redirect to /static/index.html '''
-    return None
+
+    return redirect('static/index.html')
 
 def read_ws(ws,client):
     '''A greenlet function that reads from the websocket and updates the world'''
-    # XXX: TODO IMPLEMENT ME
-    return None
+    try:
+        while True:
+            msg = ws.receive()
+
+            print "WS RECV: %s" % msg
+
+            #If there is information on the websocket, updates the world
+            if (msg is not None):
+                packet = json.loads(msg)
+
+                for k in packet:
+                	myWorld.set(k,packet[k])
+            else:
+                break
+    except:
+        '''Done'''
 
 @sockets.route('/subscribe')
 def subscribe_socket(ws):
     '''Fufill the websocket URL of /subscribe, every update notify the
        websocket and read updates from the websocket '''
-    # XXX: TODO IMPLEMENT ME
+    client = Client()
+    clients.append(client)
+    g = gevent.spawn( read_ws, ws, client )    
+    print "Subscribing"
+
+    #Sends the current status of the canvas
+    client.put(json.dumps(myWorld.world()))
+    print('F: Sending: ' + json.dumps(myWorld.world()))
+
+
+    try:
+        while True:
+            # block here
+            msg = client.get()
+            print "Got a message! %s" %msg
+            ws.send(msg)
+    except Exception as e:# WebSocketError as e:
+        print "WS Error %s" % e
+    finally:
+        clients.remove(client)
+        gevent.kill(g)
+
     return None
 
 

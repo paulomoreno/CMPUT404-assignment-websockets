@@ -23,7 +23,7 @@ freetests.py is LICENSE'D under a BSD-like license:
 
 From ws4py
 
-Copyright (c) 2011-2014, Sylvain Hellegouarch, Abram Hindle
+Copyright (c) 2011-2014, Sylvain Hellegouarch, Abram Hindle, Paulo H O Moreno
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,12 @@ modification, are permitted provided that the following conditions are met:
  * Neither the name of ws4py nor the names of its contributors may be used
    to endorse or promote products derived from this software without
    specific prior written permission.
+
+- Contributions from Paulo H O Moreno (2014)
+
+- generateRandomColor() function designed by Anatoliy from StackOverflow (http://stackoverflow.com/questions/1484506/random-color-generator-in-javascript)
+
+- All Cat Images are copyrighted and they are the properties of SXC.HU or its Image providers - with a non-exclusive, non-transferable license to use the Image on the terms and conditions explained ( http://www.sxc.hu/help/7_2 ) and on the Image preview page FREE OF CHARGE. 
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
